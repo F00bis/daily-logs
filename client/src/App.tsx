@@ -1,9 +1,12 @@
 import './App.css';
+import { Button } from './components/ui/button';
 
 function App() {
   return (
-    <div className="bg-red-500">
-    </div>
+    <>
+      <h1>Hello World</h1>
+      <Button>Click me</Button>
+    </>
   );
 }
 
