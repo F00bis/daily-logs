@@ -1,30 +1,51 @@
-import { useEffect, useState } from 'react';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { createClient, type Session } from '@supabase/supabase-js';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import './App.css';
-import { Button } from './components/ui/button';
+import { AppContent } from './components/AppContent';
 
-function App() {
-  const [serverMessage, setServerMessage] = useState<string>('');
-  const [error, setError] = useState<string>('');
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+const SessionContext = createContext<Session | null>(null);
+
+export const App = () =>  {
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:3000')
-      .then(response => response.json())
-      .then(data => setServerMessage(data.message))
-      .catch(err => setError(err.message));
+    supabase.auth.getSession().then(({ data: { session } }) => {        
+      setSession(session);
+    });
+
+    const { data: { subscription }, } = supabase.auth.onAuthStateChange((_event, session) => { 
+      setSession(session);   
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  const value = useMemo(() => (session ?? null), [session]);
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Hello World</h1>
-      {serverMessage && (
-        <p className="text-green-600 mb-4">Server says: {serverMessage}</p>
-      )}
-      {error && (
-        <p className="text-red-600 mb-4">Error: {error}</p>
-      )}
-      <Button>Click me</Button>
+    <div>
+      {session &&
+        <SessionContext.Provider value={value}>
+          <AppContent />
+        </SessionContext.Provider>
+      }
+      {!session && 
+        <Auth 
+          supabaseClient={supabase} 
+          appearance={{ theme: ThemeSupa }} 
+          providers={['google']}
+        />
+      }
     </div>
   );
-}
+};
 
-export default App;
